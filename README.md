@@ -2,6 +2,8 @@
 
 **NPU (VitisAI EP) vs CPU (INT8, 8 线程) vs iGPU (780M, DirectML) 三方延迟实测，外加一个可交互的 Web 演示台。**
 
+[English](README.en.md) | 中文
+
 跑在 Ryzen 7 8845HS（Zen4 + RDNA3 780M + XDNA1 "Phoenix" 16 TOPS NPU）上，
 RyzenAI-SW 1.7.1 / ONNX Runtime 1.23.3.dev / VitisAIExecutionProvider。
 
