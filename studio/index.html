@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CNN Zoo Studio · NPU / CPU / iGPU 三方实测台</title>
+<style>
+  :root{
+    --bg:#0a0d13; --bg2:#0f141c; --panel:#141a24; --panel2:#1a212d;
+    --line:#232d3c; --line2:#2e3a4c;
+    --txt:#e7eef7; --mut:#8b9aae; --dim:#5f6d80;
+    --npu:#2fd8bd; --npu-d:#0f7f72;
+    --cpu:#ff6b81; --cpu-d:#8c2b3c;
+    --igpu:#9d8cff; --igpu-d:#4c3f9e;
+    --acc:#7c8cff;
+    --ok:#4ade80; --warn:#e0a63c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 15% -10%, #16202e 0%, var(--bg) 55%) fixed;
+    color:var(--txt); font:14px/1.5 "Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--acc)}
+  header{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:14px 22px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(20,26,36,.92),rgba(10,13,19,.6));
+    backdrop-filter:blur(8px);position:sticky;top:0;z-index:20;
+  }
+  .logo{width:30px;height:30px;flex:0 0 auto}
+  h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.2px}
+  .sub{color:var(--mut);font-size:12px;margin-top:1px}
+  .grow{flex:1}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:5px 11px;border:1px solid var(--line2);border-radius:999px;
+    font-size:12px;color:var(--mut);background:var(--panel);white-space:nowrap
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+  .dot.on{background:var(--npu);box-shadow:0 0 8px var(--npu)}
+  .dot.err{background:var(--cpu);box-shadow:0 0 8px var(--cpu)}
+  .dot.wait{background:#e0a63c;box-shadow:0 0 8px #e0a63c;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  main{display:grid;grid-template-columns:300px 1fr;gap:18px;padding:18px 22px 34px;align-items:start}
+  @media (max-width:1020px){main{grid-template-columns:1fr}}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line);border-radius:14px;padding:16px;
+    box-shadow:0 8px 26px rgba(0,0,0,.28)
+  }
+  .card h2{font-size:13px;margin:0 0 12px;letter-spacing:.6px;color:var(--mut);
+    text-transform:uppercase;font-weight:600}
+  .card h2 .n{color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0}
+  /* ---------- model list ---------- */
+  .grp{font-size:11px;color:var(--dim);letter-spacing:1px;margin:14px 0 8px;
+    display:flex;align-items:center;gap:8px}
+  .grp:first-of-type{margin-top:0}
+  .grp::after{content:"";flex:1;height:1px;background:var(--line)}
+  .m{
+    border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:9px;
+    background:var(--panel2);cursor:pointer;transition:.15s
+  }
+  .m:hover{border-color:var(--line2)}
+  .m.sel{border-color:var(--npu-d);background:linear-gradient(180deg,rgba(47,216,189,.10),transparent)}
+  .m .t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .m .d{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.45}
+  .m .bench{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+  .bchip{font-size:10.5px;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;
+    border:1px solid var(--line2);color:var(--mut);background:rgba(10,13,19,.5)}
+  .bchip.n{border-color:var(--npu-d);color:var(--npu)}
+  .bchip.c{border-color:var(--cpu-d);color:var(--cpu)}
+  .bchip.g{border-color:var(--igpu-d);color:var(--igpu)}
+  .bchip.win{background:rgba(74,222,128,.12);border-color:#2c6e46;color:var(--ok)}
+  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:rgba(124,140,255,.14);
+    color:var(--acc);border:1px solid rgba(124,140,255,.3);font-weight:600}
+  /* ---------- source ---------- */
+  .samples{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+  .samp{
+    width:88px;border:1px solid var(--line);border-radius:9px;overflow:hidden;cursor:pointer;
+    background:var(--panel2);transition:.15s;position:relative
+  }
+  .samp:hover{border-color:var(--line2);transform:translateY(-1px)}
+  .samp.sel{border-color:var(--npu);box-shadow:0 0 0 1px var(--npu-d)}
+  .samp img{width:100%;height:56px;object-fit:cover;display:block}
+  .samp .n{font-size:10.5px;color:var(--mut);padding:4px 6px;text-align:center;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drop{
+    border:1.5px dashed var(--line2);border-radius:12px;padding:14px;color:var(--mut);
+    cursor:pointer;transition:.15s;background:rgba(20,26,36,.5);text-align:center;font-size:13px
+  }
+  .drop:hover,.drop.over{border-color:var(--npu);color:var(--npu);background:rgba(47,216,189,.06)}
+  .drop b{color:var(--txt)}
+  /* ---------- controls ---------- */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{
+    padding:8px 16px;background:var(--panel);border:0;color:var(--mut);cursor:pointer;font-size:12.5px;
+    font-family:inherit;transition:.12s
+  }
+  .seg button:hover{color:var(--txt)}
+  .seg button.on{background:var(--npu);color:#04211c;font-weight:700}
+  .seg button.on.cpu{background:var(--cpu);color:#2a0810}
+  .seg button.on.igpu{background:var(--igpu);color:#14102e}
+  .seg button.on.all{background:var(--acc);color:#0b1030}
+  button.btn{
+    padding:9px 18px;border-radius:10px;border:1px solid var(--npu-d);
+    background:linear-gradient(180deg,rgba(47,216,189,.2),rgba(47,216,189,.08));
+    color:var(--npu);font-weight:600;cursor:pointer;font-family:inherit;font-size:13px
+  }
+  button.btn:hover{background:linear-gradient(180deg,rgba(47,216,189,.3),rgba(47,216,189,.14))}
+  button.btn.ghost{border-color:var(--line2);background:var(--panel);color:var(--mut)}
+  button.btn:disabled{opacity:.45;cursor:not-allowed}
+  button.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  /* ---------- results ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
+  .rcard{
+    border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--panel2);
+    display:flex;flex-direction:column
+  }
+  .rcard .hd{
+    display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);
+    background:rgba(10,13,19,.4)
+  }
+  .rcard .hd .nm{font-size:12.5px;font-weight:700;letter-spacing:.4px}
+  .rcard .hd .ms{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .rcard.npu .hd .nm{color:var(--npu)} .rcard.npu .hd .ms{color:var(--npu)}
+  .rcard.cpu .hd .nm{color:var(--cpu)} .rcard.cpu .hd .ms{color:var(--cpu)}
+  .rcard.igpu .hd .nm{color:var(--igpu)} .rcard.igpu .hd .ms{color:var(--igpu)}
+  .rcard .img{background:#05070a;display:flex;align-items:center;justify-content:center;min-height:160px;padding:10px}
+  .rcard .img img{display:block;max-width:100%;max-height:300px;width:auto;height:auto;border-radius:6px}
+  .rcard .ft{padding:8px 12px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .vs{font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:700}
+  .vs.best{background:rgba(74,222,128,.14);color:var(--ok);border:1px solid #2c6e46}
+  .vs.slower{background:rgba(255,107,129,.1);color:var(--cpu);border:1px solid var(--cpu-d)}
+  .vs.fast{background:rgba(47,216,189,.1);color:var(--npu);border:1px solid var(--npu-d)}
+  .err{color:var(--cpu);font-size:12px;padding:14px;line-height:1.6}
+  .viewer{
+    position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    background:#05070a;min-height:0;padding:10px;margin:0 auto;max-width:400px;
+    display:flex;align-items:center;justify-content:center
+  }
+  .viewer img{display:block;max-width:100%;max-height:260px;width:auto;height:auto;border-radius:6px}
+  .hint{color:var(--dim);font-size:13px;padding:32px 20px;text-align:center;line-height:2}
+  .bar{height:8px;border-radius:4px;background:var(--panel);overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;border-radius:4px}
+  .brow{display:grid;grid-template-columns:44px 1fr 74px;gap:9px;align-items:center;
+    font-size:11.5px;margin-top:7px;font-variant-numeric:tabular-nums}
+  .brow .lb{color:var(--mut);font-weight:700}
+  .brow .v{text-align:right}
+  /* ---------- notes ---------- */
+  .find{border-left:3px solid var(--warn);padding:4px 0 4px 12px;margin:12px 0;
+    font-size:12.5px;color:var(--mut);line-height:1.7}
+  .find b{color:var(--txt)}
+  .find .k{color:var(--npu);font-weight:700}
+  .kv{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;
+    border-bottom:1px dashed var(--line);color:var(--mut)}
+  .kv:last-child{border-bottom:0}
+  .kv b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line2);
+    border-top-color:var(--npu);border-radius:50%;animation:sp .7s linear infinite;
+    vertical-align:-2px;margin-right:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .benchpanel{margin-top:14px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .mono{font-family:Consolas,ui-monospace,monospace;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="logo" viewBox="0 0 32 32" fill="none">
+    <rect x="2" y="2" width="28" height="28" rx="7" stroke="#2fd8bd" stroke-width="1.6"/>
+    <rect x="8" y="8" width="7" height="7" rx="1.6" fill="#2fd8bd"/>
+    <rect x="17" y="8" width="7" height="7" rx="1.6" fill="#7c8cff"/>
+    <rect x="8" y="17" width="7" height="7" rx="1.6" fill="#9d8cff"/>
+    <rect x="17" y="17" width="7" height="7" rx="1.6" fill="#ff6b81" opacity=".85"/>
+  </svg>
+  <div>
+    <h1>CNN Zoo Studio · NPU / CPU / iGPU 三方实测台</h1>
+    <div class="sub">Ryzen 7 8845HS · XDNA1 16TOPS · RDNA3 780M · RyzenAI 1.7.1</div>
+  </div>
+  <div class="grow"></div>
+  <span class="pill"><span id="warmDot" class="dot wait"></span><span id="warmTxt">预热中…</span></span>
+  <span class="pill" id="ortPill">ORT —</span>
+  <span class="pill">10 模型 × 3 算力</span>
+</header>
+
+<main>
+  <!-- ======================= sidebar ======================= -->
+  <aside>
+    <div class="card">
+      <h2>模型目录 <span class="n" id="modelCount"></span></h2>
+      <div id="modelList"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>本轮三个关键发现</h2>
+      <div class="find"><b>① 子图碎片化是 NPU 性能杀手。</b>EP 编译缓存里能直接数出来：
+        <span class="k">LRASPP 整图 1 个子图</span> → 27.7ms 跑赢 CPU；
+        AnimeGANv2 被切成 <b>40 片</b>、Real-ESRGAN <b>81 片</b>，每片都要 NPU↔CPU 搬数据，
+        反而比 CPU 慢 4~6 倍；MODNet 更惨，EP 直接放弃编译（0 子图）。</div>
+      <div class="find"><b>② 大视觉模型首选 iGPU 780M。</b>FP32 的 DML 就全面碾压 INT8 的 NPU：
+        抠图 30ms vs 454ms、动漫化 178ms vs 3658ms。NPU 只在小分类/检测模型上保住 3~7× 优势。</div>
+      <div class="find"><b>③ INT8 不是免费午餐。</b>MODNet 两轮标定输出都接近全零（InstanceNorm 结构）；
+        DeepLabV3 用快速标定整图全背景，换 MinMSE 后才恢复到 99.1% 像素一致率。</div>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <section>
+    <div class="card">
+      <h2>1 · 选择图片</h2>
+      <div class="samples" id="sampleRow"></div>
+      <div class="drop" id="drop">
+        <b>点击上传</b> 或把图片拖到这里 · 也可以直接 Ctrl+V 粘贴<br>
+        <span style="font-size:11.5px;color:var(--dim)">任意尺寸都可以，服务端会按模型输入自动缩放</span>
+      </div>
+      <input type="file" id="file" accept="image/*" style="display:none" />
+      <div class="viewer" id="viewer">
+        <div class="hint" id="viewerHint">还没有选图片——点上方样例、上传，或 Ctrl+V 粘贴</div>
+        <img id="viewerImg" style="display:none" />
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>2 · 选择算力与模型</h2>
+      <div class="row" style="margin-bottom:12px">
+        <div class="seg" id="provSeg">
+          <button data-p="npu" class="on">NPU (XDNA1)</button>
+          <button data-p="cpu">CPU (8线程)</button>
+          <button data-p="igpu">iGPU (780M)</button>
+          <button data-p="all">⚔ 三方对比</button>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" id="runBtn">▶ 开始推理</button>
+        <button class="btn ghost sm" id="benchBtn">📊 实测一轮基准（2 热手 + 8 次）</button>
+        <span class="pill" id="curModel" style="font-size:12px">未选择模型</span>
+      </div>
+      <div class="benchpanel" id="benchPanel" style="display:none"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;display:none" id="resultCard">
+      <h2>3 · 推理结果</h2>
+      <div class="grid" id="results"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const MODELS = [];
+let curModel = null;
+let curProvider = "npu";
+let curImage = null;          // dataURL (jpeg) of the source image
+let curImageName = "";
+let sampleSel = null;
+
+const PROV_META = {
+  npu:  {name:"NPU · XDNA1", cls:"npu",  color:"#2fd8bd", unit:"INT8"},
+  cpu:  {name:"CPU · 8线程",  cls:"cpu",  color:"#ff6b81", unit:"INT8"},
+  igpu: {name:"iGPU · 780M",  cls:"igpu", color:"#9d8cff", unit:"FP32"},
+};
+
+// ---------------------------------------------------------------- models --
+async function loadModels(){
+  const r = await fetch("/api/models").then(r=>r.json());
+  $("#ortPill").textContent = "ORT " + r.ort;
+  if (r.warm && r.warm.ready){
+    $("#warmDot").className = "dot on";
+    $("#warmTxt").textContent = "NPU 已预热 " + r.warm.sec + "s" +
+      (r.warm.failed && r.warm.failed.length ? " · 失败:" + r.warm.failed.join(",") : "");
+  } else {
+    setTimeout(loadModels, 1500);
+  }
+  const list = $("#modelList");
+  list.innerHTML = "";
+  let lastGrp = null;
+  for (const m of r.models){
+    MODELS.push(m);
+    if (m.group !== lastGrp){
+      lastGrp = m.group;
+      const g = document.createElement("div");
+      g.className = "grp";
+      g.textContent = m.group === "new" ? "本轮新测 · 趣味模型" : "对照 · 此前跑通的模型";
+      list.appendChild(g);
+    }
+    const el = document.createElement("div");
+    el.className = "m";
+    el.dataset.key = m.key;
+    const b = m.bench || {};
+    const chips = [];
+    if (b.npu != null)  chips.push(`<span class="bchip n">NPU ${b.npu}ms</span>`);
+    if (b.cpu != null)  chips.push(`<span class="bchip c">CPU ${b.cpu}ms</span>`);
+    if (b.dml != null)  chips.push(`<span class="bchip g">iGPU ${b.dml}ms</span>`);
+    if (b.subgraphs != null) chips.push(`<span class="bchip">${b.subgraphs} 子图</span>`);
+    // mark the winner among available numbers
+    const avail = [["npu",b.npu],["cpu",b.cpu],["igpu",b.dml]].filter(x=>x[1]!=null);
+    if (avail.length > 1){
+      const win = avail.reduce((a,x)=>x[1]<a[1]?x:a);
+      const idx = chips.findIndex(c=>c.includes(win[0]==="npu"?"NPU":win[0]==="cpu"?"CPU":"iGPU"));
+      if (idx >= 0) chips[idx] = chips[idx].replace('class="bchip', 'class="bchip win" style="margin-left:0"').replace("</span>"," ★最快</span>");
+    }
+    el.innerHTML = `
+      <div class="t">${m.title}<span class="tag">${m.group==="new"?"新测":"对照"}</span></div>
+      <div class="d">${m.desc}</div>
+      <div class="bench">${chips.join("")}</div>`;
+    el.onclick = () => selectModel(m.key);
+    list.appendChild(el);
+  }
+  $("#modelCount").textContent = "(" + r.models.length + ")";
+  if (r.missing && r.missing.length){
+    const n = document.createElement("div");
+    n.className = "grp";
+    n.style.opacity = ".5";
+    n.style.marginTop = "14px";
+    n.textContent = "另有 " + r.missing.length + " 个未就绪（缺权重，见 README）: " + r.missing.join(" / ");
+    list.appendChild(n);
+  }
+  if (r.models.length) selectModel(r.models[0].key);
+}
+
+function selectModel(key){
+  curModel = MODELS.find(m=>m.key===key);
+  document.querySelectorAll(".m").forEach(el=>el.classList.toggle("sel", el.dataset.key===key));
+  $("#curModel").textContent = curModel ? curModel.title : "未选择模型";
+  // 只保留该模型可用的 provider
+  const avail = curModel ? curModel.providers : [];
+  document.querySelectorAll("#provSeg button").forEach(btn=>{
+    const p = btn.dataset.p;
+    const ok = p === "all" ? avail.length > 1 : avail.includes(p);
+    btn.style.opacity = ok ? "1" : ".32";
+    btn.style.pointerEvents = ok ? "auto" : "none";
+    if (!ok && btn.classList.contains("on")){
+      btn.classList.remove("on");
+      const first = document.querySelector('#provSeg button[data-p="'+(avail[0]||"npu")+'"]');
+      if (first) first.classList.add("on"), curProvider = avail[0]||"npu";
+    }
+  });
+}
+
+// ---------------------------------------------------------------- samples --
+async function loadSamples(){
+  const r = await fetch("/api/samples").then(r=>r.json());
+  const row = $("#sampleRow");
+  row.innerHTML = "";
+  for (const s of r.samples){
+    const el = document.createElement("div");
+    el.className = "samp";
+    el.innerHTML = `<img src="${s.url}" alt="${s.name}"><div class="n">${s.desc.split(" ")[0]}</div>`;
+    el.title = s.desc;
+    el.onclick = async () => {
+      document.querySelectorAll(".samp").forEach(x=>x.classList.remove("sel"));
+      el.classList.add("sel");
+      curImageName = s.name;
+      // 样例图必须先取成 dataURL 再存：shrink() 的小图捷径只认 data: 前缀，
+      // 直接存 URL 会把链接字符串当图片发给服务端（base64 解出十几字节 → 报"数据过短"）
+      try {
+        const blob = await fetch(s.url).then(r=>r.blob());
+        curImage = await new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res(fr.result);
+          fr.onerror = rej;
+          fr.readAsDataURL(blob);
+        });
+      } catch(e){
+        curImage = null;
+        alert("样例图加载失败：" + e);
+        return;
+      }
+      showOrig(curImage);
+    };
+    row.appendChild(el);
+    if (s.name === "city") el.click();
+  }
+}
+
+function showOrig(url){
+  $("#viewerHint").style.display = "none";
+  const img = $("#viewerImg");
+  img.src = url;
+  img.style.display = "block";
+}
+
+// upload / drag / paste
+$("#drop").onclick = () => $("#file").click();
+$("#file").onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); };
+["dragover","dragenter"].forEach(ev=>$("#drop").addEventListener(ev, e=>{
+  e.preventDefault(); $("#drop").classList.add("over");
+}));
+["dragleave","drop"].forEach(ev=>$("#drop").addEventListener(ev, e=>{
+  e.preventDefault(); $("#drop").classList.remove("over");
+}));
+$("#drop").addEventListener("drop", e=>{
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) readFile(f);
+});
+window.addEventListener("paste", e=>{
+  const it = (e.clipboardData || {}).items || [];
+  for (const x of it){
+    if (x.type && x.type.startsWith("image/")){ readFile(x.getAsFile()); break; }
+  }
+});
+
+function readFile(f){
+  const r = new FileReader();
+  r.onload = () => {
+    curImage = r.result; curImageName = f.name || "pasted";
+    document.querySelectorAll(".samp").forEach(x=>x.classList.remove("sel"));
+    showOrig(r.result);
+  };
+  r.readAsDataURL(f);
+}
+
+// ---------------------------------------------------------------- controls --
+document.querySelectorAll("#provSeg button").forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll("#provSeg button").forEach(b=>b.classList.remove("on"));
+    btn.classList.add("on");
+    curProvider = btn.dataset.p;
+  };
+});
+
+$("#runBtn").onclick = runInfer;
+$("#benchBtn").onclick = runBench;
+
+async function runInfer(){
+  if (!curModel){ alert("先选一个模型"); return; }
+  if (!curImage){ alert("先选一张图片"); return; }
+  const btn = $("#runBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>推理中…';
+  const provs = curProvider === "all" ? curModel.providers : [curProvider];
+  try{
+    // 压缩到 1024 以内再传，省带宽
+    const payload = await shrink(curImage, 1024);
+    const r = await fetch("/api/infer", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({image: payload, model: curModel.key, providers: provs})
+    }).then(r=>r.json());
+    renderResults(r);
+  }catch(e){
+    alert("推理失败: " + e);
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = "▶ 开始推理";
+  }
+}
+
+function shrink(dataURL, maxSide){
+  return new Promise(res=>{
+    // 只有真 dataURL 才能走"原样返回"捷径；URL 字符串必须过 canvas 变成图片数据
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, maxSide / Math.max(img.width, img.height));
+      if (s === 1 && /^data:image\//i.test(dataURL) && dataURL.length < 400000)
+        return res(dataURL);
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL("image/jpeg", 0.92));
+    };
+    img.onerror = () => res(/^data:image\//i.test(dataURL) ? dataURL : "");
+    img.src = dataURL;
+  });
+}
+
+// ---------------------------------------------------------------- results --
+function renderResults(r){
+  const box = $("#results");
+  box.innerHTML = "";
+  $("#resultCard").style.display = "";   // 首次出结果才展开第 3 区
+  const keys = Object.keys(r.results || {});
+  if (!keys.length){
+    // 服务端的真实错误（未知模型/图片解码失败等）必须显示出来，
+    // 否则全部被这句"没有可用的算力 provider"吞掉，没法排查
+    const msg = r.error ? ("服务端拒绝：" + r.error)
+                       : "没有可用的算力 provider（请刷新页面重试）";
+    box.innerHTML = '<div class="err">' + msg + '</div>';
+    return;
+  }
+  for (const p of keys){
+    const meta = PROV_META[p] || {name:p, cls:"", color:"#888"};
+    const item = r.results[p];
+    const card = document.createElement("div");
+    card.className = "rcard " + meta.cls;
+    if (!item.ok){
+      card.innerHTML = `
+        <div class="hd"><span class="nm">${meta.name}</span>
+          <span class="ms" style="color:var(--cpu)">失败</span></div>
+        <div class="err">${item.error || "未知错误"}</div>`;
+      box.appendChild(card);
+      continue;
+    }
+    let vs = "";
+    if (item.vs_best != null){
+      if (item.vs_best >= 0.999) vs = `<span class="vs best">★ 本轮最快</span>`;
+      else if (item.vs_best > 1) vs = `<span class="vs fast">比最慢快 ${item.vs_best.toFixed(2)}×</span>`;
+      else vs = `<span class="vs slower">比最快慢 ${(1/item.vs_best).toFixed(2)}×</span>`;
+    }
+    let extra = "";
+    if (item.top && item.top.length)
+      extra = item.top.map(t=>`${t[0]} ${t[1]}%`).join(" · ");
+    else if (item.count != null)
+      extra = `检出 ${item.count} 个目标`;
+    const slow = (p === "npu" && item.ms > 1000);
+    const foot = [vs,
+                  extra ? `<span>${extra}</span>` : "",
+                  item.note ? `<span>${item.note}</span>` : "",
+                  slow ? `<span style="color:var(--warn)">⚠ 子图碎片化拖累</span>` : "",
+                  item.warn ? `<span style="color:var(--warn)">⚠ ${item.warn}</span>` : "",
+                  `<span>${meta.unit}</span>`].filter(Boolean).join("");
+    card.innerHTML = `
+      <div class="hd"><span class="nm">${meta.name}</span>
+        <span class="ms">${item.ms} ms</span></div>
+      <div class="img"><img src="${item.image}" alt="${meta.name}"></div>
+      <div class="ft">${foot}</div>`;
+    box.appendChild(card);
+  }
+  // 三方对比时加一个延迟条形图
+  if (keys.length > 1){
+    const rows = keys.filter(p=>r.results[p].ok)
+      .map(p=>({p, ms:r.results[p].ms}))
+      .sort((a,b)=>a.ms-b.ms);
+    const max = rows[rows.length-1].ms;
+    const wrap = document.createElement("div");
+    wrap.className = "rcard";
+    wrap.style.gridColumn = "1 / -1";
+    wrap.innerHTML = `<div class="hd"><span class="nm" style="color:var(--acc)">延迟对比</span>
+      <span class="ms" style="color:var(--mut);font-size:11.5px">${curModel.title}</span></div>
+      <div style="padding:12px 14px">` + rows.map(x=>{
+        const meta = PROV_META[x.p];
+        const pct = Math.max(2, x.ms / max * 100);
+        const ratio = (max / x.ms);
+        return `<div class="brow"><span class="lb" style="color:${meta.color}">${x.p.toUpperCase()}</span>
+          <div class="bar"><i style="width:${pct}%;background:${meta.color}"></i></div>
+          <span class="v">${x.ms}ms · ${ratio.toFixed(1)}×</span></div>`;
+      }).join("") + `</div>`;
+    box.appendChild(wrap);
+  }
+}
+
+// ---------------------------------------------------------------- bench ----
+async function runBench(){
+  if (!curModel){ alert("先选一个模型"); return; }
+  const btn = $("#benchBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>实测中…';
+  const panel = $("#benchPanel");
+  panel.style.display = "block";
+  panel.innerHTML = '<div style="color:var(--mut);font-size:12.5px;padding:8px 0">正在跑 2 次热手 + 8 次计时，NPU 大模型可能要等十几秒…</div>';
+  try{
+    const r = await fetch("/api/bench?model=" + curModel.key).then(r=>r.json());
+    const rows = Object.entries(r.results || {}).map(([p, v])=>({p, ...v}))
+      .filter(x=>x.ms != null).sort((a,b)=>a.ms-b.ms);
+    let html = `<div style="font-size:12.5px;margin-bottom:4px"><b style="color:var(--txt)">${r.title}</b>
+      <span style="color:var(--dim)"> · 实时基准（合成图，8 次取均值）</span></div>`;
+    if (rows.length){
+      const max = rows[rows.length-1].ms;
+      html += rows.map(x=>{
+        const meta = PROV_META[x.p];
+        return `<div class="brow"><span class="lb" style="color:${meta.color}">${x.p.toUpperCase()}</span>
+          <div class="bar"><i style="width:${Math.max(2,x.ms/max*100)}%;background:${meta.color}"></i></div>
+          <span class="v">${x.ms}ms${x.min!=null?` <span style="color:var(--dim)">min ${x.min}</span>`:""}</span></div>`;
+      }).join("");
+      if (r.speedup_npu_vs_cpu) html += `<div style="font-size:12px;margin-top:10px;color:var(--mut)">
+        NPU vs CPU：<b style="color:${r.speedup_npu_vs_cpu>1?"var(--npu)":"var(--cpu)"}">${r.speedup_npu_vs_cpu}×</b>
+        ${r.speedup_npu_vs_igpu?` · NPU vs iGPU：<b style="color:${r.speedup_npu_vs_igpu>1?"var(--npu)":"var(--cpu)"}">${r.speedup_npu_vs_igpu}×</b>`:""}
+        ${r.speedup_igpu_vs_cpu?` · iGPU vs CPU：<b style="color:${r.speedup_igpu_vs_cpu>1?"var(--igpu)":"var(--cpu)"}">${r.speedup_igpu_vs_cpu}×</b>`:""}</div>`;
+    } else {
+      html += '<div class="err">所有 provider 都跑失败了</div>';
+    }
+    panel.innerHTML = html;
+  }catch(e){
+    panel.innerHTML = '<div class="err">基准测试失败: ' + e + '</div>';
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = "📊 实测一轮基准（2 热手 + 8 次）";
+  }
+}
+
+// ---------------------------------------------------------------- boot -----
+loadSamples();
+loadModels();
+</script>
+</body>
+</html>

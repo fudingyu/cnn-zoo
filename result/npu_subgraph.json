@@ -1,0 +1,45 @@
+{
+  "zoo_animeganv2_4x4": {
+    "subgraphs": 40,
+    "npu_nodes": 481,
+    "biggest_subgraph_nodes": 22,
+    "sample_ids": [
+      "subgraph_(100_DequantizeLinear_Output_vaip_1)",
+      "subgraph_(108)",
+      "subgraph_(138_DequantizeLinear_Output_vaip_6)"
+    ]
+  },
+  "zoo_deeplabv3_seg_4x4": {
+    "subgraphs": 2,
+    "npu_nodes": 697,
+    "biggest_subgraph_nodes": 652,
+    "sample_ids": [
+      "subgraph_(/aux_classifier/aux_classifier.0/Conv_output_0_vaip_49)",
+      "subgraph_(/backbone/backbone.16/backbone.16.2/Mul_output_0_Split_DequantizeLinear_Output_vaip_590)"
+    ]
+  },
+  "zoo_lraspp_seg_4x4": {
+    "subgraphs": 1,
+    "npu_nodes": 682,
+    "biggest_subgraph_nodes": 682,
+    "sample_ids": [
+      "subgraph_(/backbone/backbone.0/backbone.0.0/Conv_output_0_vaip_3)"
+    ]
+  },
+  "zoo_modnet_matting_4x4": {
+    "subgraphs": 0,
+    "npu_nodes": 0,
+    "biggest_subgraph_nodes": 0,
+    "sample_ids": []
+  },
+  "zoo_realesrgan_4x4": {
+    "subgraphs": 81,
+    "npu_nodes": 707,
+    "biggest_subgraph_nodes": 39,
+    "sample_ids": [
+      "subgraph_(/body/body.0/rdb1/Add_output_0_DequantizeLinear_Output/duplicated)",
+      "subgraph_(/body/body.0/rdb1/Add_output_0_DequantizeLinear_Output/duplicated_token_18)",
+      "subgraph_(/body/body.0/rdb1/Add_output_0_DequantizeLinear_Output/duplicated_token_20)"
+    ]
+  }
+}

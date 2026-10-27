@@ -1,0 +1,21 @@
+{
+  "modnet_matting_mse": {
+    "mae": 0.3,
+    "psnr": 5.47,
+    "range8": [
+      0.0,
+      0.9921875
+    ]
+  },
+  "deeplabv3_mse": {
+    "agree": 0.9912,
+    "cls_fp32": [
+      0,
+      15
+    ],
+    "cls_int8": [
+      0,
+      15
+    ]
+  }
+}

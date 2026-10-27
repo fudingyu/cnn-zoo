@@ -1,0 +1,106 @@
+{
+  "lraspp_seg": {
+    "fp32_out_shape": [
+      1,
+      21,
+      512,
+      512
+    ],
+    "int8_out_shape": [
+      1,
+      21,
+      512,
+      512
+    ],
+    "pixel_agreement_vs_fp32": 0.9523,
+    "classes_fp32": [
+      0,
+      17
+    ],
+    "classes_int8": [
+      0,
+      3,
+      17
+    ],
+    "top_classes_int8": [
+      "background",
+      "bird",
+      "sheep",
+      "motorbike",
+      "horse"
+    ]
+  },
+  "deeplabv3_seg": {
+    "fp32_out_shape": [
+      1,
+      21,
+      512,
+      512
+    ],
+    "int8_out_shape": [
+      1,
+      21,
+      512,
+      512
+    ],
+    "pixel_agreement_vs_fp32": 0.929,
+    "classes_fp32": [
+      0,
+      17
+    ],
+    "classes_int8": [
+      0
+    ],
+    "top_classes_int8": [
+      "background"
+    ]
+  },
+  "modnet_matting": {
+    "fp32_out_shape": [
+      1,
+      1,
+      512,
+      512
+    ],
+    "int8_out_shape": [
+      1,
+      1,
+      512,
+      512
+    ],
+    "fp32_range": [
+      0.0,
+      1.0
+    ],
+    "int8_range": [
+      0.0,
+      0.75
+    ],
+    "mae_vs_fp32": 108.29,
+    "psnr_vs_fp32": 3.78
+  },
+  "animeganv2": {
+    "fp32_out_shape": [
+      1,
+      3,
+      512,
+      512
+    ],
+    "int8_out_shape": [
+      1,
+      3,
+      512,
+      512
+    ],
+    "fp32_range": [
+      -0.9944392442703247,
+      0.8058691024780273
+    ],
+    "int8_range": [
+      -1.0,
+      0.8828125
+    ],
+    "mae_vs_fp32": 21.3,
+    "psnr_vs_fp32": 20.14
+  }
+}

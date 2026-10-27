@@ -1,0 +1,11 @@
+# Normalize line endings: LF in the repo, except Windows scripts.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — never diff or convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.onnx binary
+*.xclbin binary

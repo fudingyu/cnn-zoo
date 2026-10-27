@@ -1,0 +1,17 @@
+# AMD's onnxruntime (the one with VitisAIExecutionProvider) is NOT on PyPI.
+# Install it from the RyzenAI 1.7.1 installer, then verify with:
+#     python -c "import onnxruntime; print(onnxruntime.get_available_providers())"
+#
+# Everything below comes from PyPI.
+
+numpy==1.26.4          # pinned: newer numpy breaks AMD's ORT build ABI
+opencv-python>=4.8
+Pillow>=10
+onnx>=1.15
+onnxsim>=0.4           # static-shape fixing before quantization
+
+# --- optional: only needed for specific scripts ---------------------------- #
+# amd-quark>=0.11      # quantize_all.py / requant_*.py  (XINT8 conversion)
+# torch>=2.1           # export_tv.py  (re-export LRASPP / DeepLabV3)
+# torchvision>=0.16    # export_tv.py
+# huggingface_hub>=0.20  # tools/fetch_models.py

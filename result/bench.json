@@ -1,0 +1,37 @@
+[
+  {
+    "key": "lraspp_seg",
+    "npu_ms": 27.67,
+    "cpu_ms": 35.8,
+    "fp32_cpu_ms": 59.36,
+    "speedup": 1.29
+  },
+  {
+    "key": "deeplabv3_seg",
+    "npu_ms": 151.14,
+    "cpu_ms": 83.56,
+    "fp32_cpu_ms": 85.43,
+    "speedup": 0.55
+  },
+  {
+    "key": "modnet_matting",
+    "npu_ms": 453.91,
+    "cpu_ms": 149.91,
+    "fp32_cpu_ms": 249.34,
+    "speedup": 0.33
+  },
+  {
+    "key": "animeganv2",
+    "npu_ms": 3658.38,
+    "cpu_ms": 656.38,
+    "fp32_cpu_ms": 945.34,
+    "speedup": 0.18
+  },
+  {
+    "key": "realesrgan",
+    "npu_ms": 4770.9,
+    "cpu_ms": 1114.47,
+    "fp32_cpu_ms": 2905.19,
+    "speedup": 0.23
+  }
+]
